@@ -1,5 +1,3 @@
-from typing import Literal
-
 from pydantic import BaseModel
 
 
@@ -14,5 +12,4 @@ class RootResponse(BaseModel):
 
 
 class ChatResponse(BaseModel):
-    reply: str
-    mode: Literal["placeholder"] = "placeholder"
+    response: str

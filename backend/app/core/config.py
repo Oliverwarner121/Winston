@@ -10,11 +10,6 @@ class APISettings(BaseModel):
     cors_origins: list[str] = Field(default_factory=list)
 
 
-class OllamaSettings(BaseModel):
-    base_url: str = "http://ollama:11434"
-    default_model: str = "llama3.2"
-
-
 class DatabaseSettings(BaseModel):
     url: str = "sqlite:///./winston.db"
 
@@ -37,9 +32,11 @@ class Settings(BaseSettings):
     app_version: str = "0.1.0"
     environment: str = "development"
     log_level: str = "INFO"
+    ollama_url: str = "http://localhost:11434"
+    ollama_model: str = "qwen2.5:7b"
+    ollama_timeout_seconds: float = Field(default=120, gt=0)
 
     api: APISettings = Field(default_factory=APISettings)
-    ollama: OllamaSettings = Field(default_factory=OllamaSettings)
     database: DatabaseSettings = Field(default_factory=DatabaseSettings)
     features: FeatureSettings = Field(default_factory=FeatureSettings)
 

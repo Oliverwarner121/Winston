@@ -11,15 +11,14 @@ type Message = {
 }
 
 type ChatResponse = {
-  reply: string
-  mode: 'placeholder'
+  response: string
 }
 
 const welcomeMessage: Message = {
   id: 0,
   role: 'assistant',
   content:
-    "Hi, I'm Winston. This chat sends messages to the backend, but an AI model isn't connected yet. Send a message to try the placeholder reply.",
+    "Hi, I'm Winston. I'm ready to help with development, homelab management, and staying organised. What would you like to work on?",
 }
 
 function App() {
@@ -71,7 +70,7 @@ function App() {
     try {
       let response: Response
       try {
-        response = await fetch('/api/chat', {
+        response = await fetch('/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ message }),
@@ -112,7 +111,7 @@ function App() {
           {
             id: nextId.current++,
             role: 'assistant',
-            content: result.reply,
+            content: result.response,
           },
         ])
       } catch {
@@ -148,7 +147,11 @@ function App() {
       <aside className="sidebar">
         <a className="brand" href="/" aria-label="Winston home">
           <span className="brand-mark" aria-hidden="true">
-            W
+            <img
+              alt=""
+              className="winston-mark-image"
+              src="/winston-avatar.png"
+            />
           </span>
           <span>Winston</span>
         </a>
@@ -182,7 +185,11 @@ function App() {
         <header className="topbar">
           <div className="mobile-brand">
             <span className="brand-mark" aria-hidden="true">
-              W
+              <img
+                alt=""
+                className="winston-mark-image"
+                src="/winston-avatar.png"
+              />
             </span>
             Winston
           </div>
@@ -199,9 +206,6 @@ function App() {
         <section className="conversation" aria-label="Chat conversation">
           <div className="messages" ref={messageListRef} aria-live="polite">
             <div className="conversation-intro">
-              <span className="intro-mark" aria-hidden="true">
-                W
-              </span>
               <p>YOUR PERSONAL ASSISTANT</p>
               <h1>A little more focus.</h1>
               <p className="intro-description">
@@ -217,7 +221,11 @@ function App() {
                 >
                   {message.role === 'assistant' && (
                     <span className="message-avatar" aria-hidden="true">
-                      W
+                      <img
+                        alt=""
+                        className="message-avatar-image"
+                        src="/winston-avatar.png"
+                      />
                     </span>
                   )}
                   <div className="message-content">
@@ -236,7 +244,11 @@ function App() {
               {isSending && (
                 <div className="message-row assistant" role="status">
                   <span className="message-avatar" aria-hidden="true">
-                    W
+                    <img
+                      alt=""
+                      className="message-avatar-image"
+                      src="/winston-avatar.png"
+                    />
                   </span>
                   <div className="message-content">
                     <span className="message-author">Winston</span>
@@ -313,7 +325,7 @@ function App() {
               <span>Enter to send</span>
               <span>·</span>
               <span>Shift + Enter for a new line</span>
-              <span className="demo-hint">Placeholder replies · no AI connected</span>
+              <span className="demo-hint">Powered by your local Ollama model</span>
             </p>
           </div>
         </section>
