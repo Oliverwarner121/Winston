@@ -9,6 +9,8 @@ from app.api.health import router as health_router
 from app.api.root import router as root_router
 from app.core.config import settings
 from app.core.logging import configure_logging
+from app.services.ollama_service import OllamaService
+from app.services.winston_ai_service import WinstonAIService
 
 
 configure_logging(settings.log_level)
@@ -17,11 +19,24 @@ logger = logging.getLogger("winston")
 
 @asynccontextmanager
 async def lifespan(application: FastAPI) -> AsyncIterator[None]:
-    """Run startup and shutdown tasks."""
+    """Initialize and release long-lived application services."""
+    ollama_service = OllamaService(
+        base_url=settings.ollama_url,
+        model=settings.ollama_model,
+        timeout_seconds=settings.ollama_timeout_seconds,
+    )
+    application.state.winston_ai_service = WinstonAIService(ollama_service)
+
     logger.info("Winston environment loaded successfully (%s)", settings.environment)
-    logger.info("Winston backend started successfully")
-    yield
-    logger.info("Winston backend shutting down")
+    logger.info(
+        "Winston backend started successfully (model=%s)",
+        settings.ollama_model,
+    )
+    try:
+        yield
+    finally:
+        await ollama_service.close()
+        logger.info("Winston backend shutting down")
 
 
 app = FastAPI(

@@ -36,7 +36,13 @@ Rather than being a chatbot, Winston is intended to become a personal operating 
 
 The React frontend lives in [`frontend/`](./frontend/README.md). Run the FastAPI backend and Vite frontend in separate terminals as described in the frontend guide.
 
-The initial chat endpoint is a backend-connected placeholder only; Ollama and model responses are not implemented yet.
+The chat endpoint connects to the configured local Ollama model. See [`backend/.env.example`](./backend/.env.example) for the model URL, model name, and timeout settings. Run `uvicorn app.main:app --reload` from `backend/`, then test the chat API with:
+
+```bash
+curl -X POST http://localhost:8000/chat \
+  -H "Content-Type: application/json" \
+  -d '{"message":"Hello Winston"}'
+```
 
 ## Security auditing
 

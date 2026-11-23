@@ -11,15 +11,14 @@ type Message = {
 }
 
 type ChatResponse = {
-  reply: string
-  mode: 'placeholder'
+  response: string
 }
 
 const welcomeMessage: Message = {
   id: 0,
   role: 'assistant',
   content:
-    "Hi, I'm Winston. This chat sends messages to the backend, but an AI model isn't connected yet. Send a message to try the placeholder reply.",
+    "Hi, I'm Winston. I'm ready to help with development, homelab management, and staying organised. What would you like to work on?",
 }
 
 function App() {
@@ -71,7 +70,7 @@ function App() {
     try {
       let response: Response
       try {
-        response = await fetch('/api/chat', {
+        response = await fetch('/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ message }),
@@ -112,7 +111,7 @@ function App() {
           {
             id: nextId.current++,
             role: 'assistant',
-            content: result.reply,
+            content: result.response,
           },
         ])
       } catch {
@@ -313,7 +312,7 @@ function App() {
               <span>Enter to send</span>
               <span>·</span>
               <span>Shift + Enter for a new line</span>
-              <span className="demo-hint">Placeholder replies · no AI connected</span>
+              <span className="demo-hint">Powered by your local Ollama model</span>
             </p>
           </div>
         </section>
