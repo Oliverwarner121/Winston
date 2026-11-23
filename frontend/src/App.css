@@ -40,22 +40,26 @@
 }
 
 .brand-mark,
-.intro-mark,
 .message-avatar {
   display: grid;
   flex: 0 0 auto;
   place-items: center;
-  color: #fff;
-  background: linear-gradient(145deg, #8582f1, #625fd3);
-  font-family: 'Segoe UI', sans-serif;
-  font-weight: 800;
+}
+
+.winston-mark-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
 }
 
 .brand-mark {
   width: 30px;
   height: 30px;
+  overflow: hidden;
   border-radius: 10px;
-  font-size: 20px;
+  background: #101113;
   box-shadow: 0 3px 14px rgb(117 113 235 / 25%);
 }
 
@@ -260,18 +264,6 @@
   text-align: center;
 }
 
-.intro-mark {
-  width: 45px;
-  height: 45px;
-  margin: 0 auto 17px;
-  border: 1px solid rgb(255 255 255 / 14%);
-  border-radius: 15px;
-  box-shadow:
-    0 8px 26px rgb(105 101 220 / 20%),
-    inset 0 1px rgb(255 255 255 / 18%);
-  font-size: 22px;
-}
-
 .conversation-intro > p:first-of-type {
   margin: 0 0 10px;
   color: #8c89e6;
@@ -322,7 +314,19 @@
 }
 
 .message-avatar {
+  width: 32px;
+  height: 32px;
   margin-top: 1px;
+  overflow: hidden;
+  border-radius: 10px;
+}
+
+.message-avatar-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
 }
 
 .user-avatar {

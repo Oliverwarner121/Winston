@@ -147,7 +147,11 @@ function App() {
       <aside className="sidebar">
         <a className="brand" href="/" aria-label="Winston home">
           <span className="brand-mark" aria-hidden="true">
-            W
+            <img
+              alt=""
+              className="winston-mark-image"
+              src="/winston-avatar.png"
+            />
           </span>
           <span>Winston</span>
         </a>
@@ -181,7 +185,11 @@ function App() {
         <header className="topbar">
           <div className="mobile-brand">
             <span className="brand-mark" aria-hidden="true">
-              W
+              <img
+                alt=""
+                className="winston-mark-image"
+                src="/winston-avatar.png"
+              />
             </span>
             Winston
           </div>
@@ -198,9 +206,6 @@ function App() {
         <section className="conversation" aria-label="Chat conversation">
           <div className="messages" ref={messageListRef} aria-live="polite">
             <div className="conversation-intro">
-              <span className="intro-mark" aria-hidden="true">
-                W
-              </span>
               <p>YOUR PERSONAL ASSISTANT</p>
               <h1>A little more focus.</h1>
               <p className="intro-description">
@@ -216,7 +221,11 @@ function App() {
                 >
                   {message.role === 'assistant' && (
                     <span className="message-avatar" aria-hidden="true">
-                      W
+                      <img
+                        alt=""
+                        className="message-avatar-image"
+                        src="/winston-avatar.png"
+                      />
                     </span>
                   )}
                   <div className="message-content">
@@ -235,7 +244,11 @@ function App() {
               {isSending && (
                 <div className="message-row assistant" role="status">
                   <span className="message-avatar" aria-hidden="true">
-                    W
+                    <img
+                      alt=""
+                      className="message-avatar-image"
+                      src="/winston-avatar.png"
+                    />
                   </span>
                   <div className="message-content">
                     <span className="message-author">Winston</span>
