@@ -32,3 +32,15 @@ Rather than being a chatbot, Winston is intended to become a personal operating 
 - Ollama
 - Local Language Models
 
+## Development
+
+The React frontend lives in [`frontend/`](./frontend/README.md). Run the FastAPI backend and Vite frontend in separate terminals as described in the frontend guide.
+
+The initial chat endpoint is a backend-connected placeholder only; Ollama and model responses are not implemented yet.
+
+## Security auditing
+
+This repository includes [Cloudflare's security-audit skill](./.github/skills/security-audit/SKILL.md) for Copilot-compatible coding agents. It is development tooling, not part of Winston's runtime. Before requesting a full audit, review the skill's sandbox requirements; it requires an OS-enforced sandbox before running target-controlled code.
+
+The skill is vendored from [cloudflare/security-audit-skill](https://github.com/cloudflare/security-audit-skill/tree/c1c8a8c1471069fb0e188eeaff69b8e8db6564a8) under its [MIT license](./.github/skills/security-audit/LICENSE).
+
