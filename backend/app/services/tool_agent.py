@@ -270,6 +270,12 @@ class ToolAgent:
                     message=result.error or "Tool execution failed.",
                     steps=steps,
                 )
+            if tool.end_agent_run_after_success:
+                return AgentRunResponse(
+                    status=AgentRunStatus.COMPLETED,
+                    message="The requested tool result is ready for review.",
+                    steps=steps,
+                )
 
         return AgentRunResponse(
             status=AgentRunStatus.STEP_LIMIT_REACHED,

@@ -81,7 +81,7 @@ def test_git_status_and_branch_creation_use_scoped_git_commands(tmp_path) -> Non
     permissions = PermissionManager({"alice": [PermissionLevel.WRITE]})
     executor = build_executor(GitTool(settings), permissions)
 
-    status = asyncio.run(
+    status_pending = asyncio.run(
         executor.request_execution(
             "git",
             {"operation": "status", "repository": "repo"},
@@ -89,8 +89,13 @@ def test_git_status_and_branch_creation_use_scoped_git_commands(tmp_path) -> Non
             user_request="Check Git status",
         )
     )
+    assert status_pending.status == ToolExecutionStatus.CONFIRMATION_REQUIRED
+    assert status_pending.confirmation_id is not None
+    status = asyncio.run(
+        executor.confirm_execution(status_pending.confirmation_id, actor_id="alice")
+    )
     assert status.success is True
-    assert status.confirmed is False
+    assert status.confirmed is True
     assert "## " in status.result["output"]
 
     pending = asyncio.run(
@@ -184,7 +189,10 @@ def test_git_remote_operations_require_explicit_allowlist(tmp_path) -> None:
     assert denied.error == "Git remote is not in the configured allowlist."
 
 
-def test_open_vscode_launch_is_confirmed_and_path_scoped(tmp_path, monkeypatch) -> None:
+def test_open_vscode_launches_without_confirmation_and_is_path_scoped(
+    tmp_path,
+    monkeypatch,
+) -> None:
     project = tmp_path / "project"
     project.mkdir()
     monkeypatch.setattr(
@@ -202,10 +210,10 @@ def test_open_vscode_launch_is_confirmed_and_path_scoped(tmp_path, monkeypatch) 
         fake_popen,
     )
     settings = ToolSettings(workspace_roots=[tmp_path])
-    permissions = PermissionManager({"alice": [PermissionLevel.SYSTEM]})
+    permissions = PermissionManager({"alice": [PermissionLevel.READ]})
     executor = build_executor(OpenVSCodeTool(settings), permissions)
 
-    pending = asyncio.run(
+    opened = asyncio.run(
         executor.request_execution(
             "open_vscode",
             {"path": "project"},
@@ -213,11 +221,7 @@ def test_open_vscode_launch_is_confirmed_and_path_scoped(tmp_path, monkeypatch) 
             user_request="Open project",
         )
     )
-    assert pending.status == ToolExecutionStatus.CONFIRMATION_REQUIRED
-    assert pending.confirmation_id is not None
-    opened = asyncio.run(
-        executor.confirm_execution(pending.confirmation_id, actor_id="alice")
-    )
 
     assert opened.success is True
+    assert opened.confirmed is False
     assert calls[0][0] == ["/usr/bin/code", "--reuse-window", str(project)]

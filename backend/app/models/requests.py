@@ -11,3 +11,7 @@ ChatMessage = Annotated[
 
 class ChatRequest(BaseModel):
     message: ChatMessage
+
+
+class ChatConfirmationRequest(BaseModel):
+    approved: bool

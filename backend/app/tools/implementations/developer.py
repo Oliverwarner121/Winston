@@ -39,8 +39,7 @@ class OpenVSCodeTool(Tool[OpenVSCodeInput, OpenVSCodeOutput]):
     name = "Open VS Code"
     description = "Open a workspace file or folder in VS Code."
     category = ToolCategory.DEVELOPMENT
-    permission_level = PermissionLevel.SYSTEM
-    requires_confirmation = True
+    permission_level = PermissionLevel.READ
     input_model = OpenVSCodeInput
     output_model = OpenVSCodeOutput
     audit_safe_input_fields: ClassVar[frozenset[str]] = frozenset()
@@ -163,7 +162,7 @@ class GitTool(Tool[GitInput, GitOutput]):
         return PermissionLevel.WRITE
 
     def confirmation_required(self, inputs: GitInput) -> bool:
-        return inputs.operation not in {GitOperation.STATUS, GitOperation.HISTORY}
+        return True
 
     def confirmation_message(self, inputs: GitInput) -> str:
         if inputs.operation == GitOperation.CREATE_BRANCH:

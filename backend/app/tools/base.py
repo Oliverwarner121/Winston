@@ -41,6 +41,7 @@ class Tool(ABC, Generic[InputT, OutputT]):
     category: ClassVar[str] = "general"
     permission_level: ClassVar[PermissionLevel] = PermissionLevel.READ
     requires_confirmation: ClassVar[bool] = False
+    end_agent_run_after_success: ClassVar[bool] = False
     input_model: ClassVar[type[InputT]]
     output_model: ClassVar[type[OutputT]]
     audit_safe_input_fields: ClassVar[frozenset[str]] = frozenset()
