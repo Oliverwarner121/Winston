@@ -44,6 +44,8 @@ curl -X POST http://localhost:8000/chat \
   -d '{"message":"Hello Winston"}'
 ```
 
+The internal tool framework is documented in [`backend/docs/tool-framework.md`](./backend/docs/tool-framework.md). Tool execution is not exposed through an unauthenticated API.
+
 ## Security auditing
 
 This repository includes [Cloudflare's security-audit skill](./.github/skills/security-audit/SKILL.md) for Copilot-compatible coding agents. It is development tooling, not part of Winston's runtime. Before requesting a full audit, review the skill's sandbox requirements; it requires an OS-enforced sandbox before running target-controlled code.

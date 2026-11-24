@@ -1,6 +1,7 @@
 import logging
 from contextlib import asynccontextmanager
 from collections.abc import AsyncIterator
+from datetime import timedelta
 
 from fastapi import FastAPI
 
@@ -10,7 +11,9 @@ from app.api.root import router as root_router
 from app.core.config import settings
 from app.core.logging import configure_logging
 from app.services.ollama_service import OllamaService
+from app.services.tool_agent import ToolAgent
 from app.services.winston_ai_service import WinstonAIService
+from app.tools.runtime import create_default_tool_runtime
 
 
 configure_logging(settings.log_level)
@@ -26,6 +29,21 @@ async def lifespan(application: FastAPI) -> AsyncIterator[None]:
         timeout_seconds=settings.ollama_timeout_seconds,
     )
     application.state.winston_ai_service = WinstonAIService(ollama_service)
+    tool_runtime = create_default_tool_runtime(settings.tools)
+    application.state.tool_runtime = tool_runtime
+    if settings.features.tools_enabled:
+        application.state.tool_agent = ToolAgent(
+            provider=ollama_service,
+            registry=tool_runtime.registry,
+            executor=tool_runtime.executor,
+            permission_manager=tool_runtime.permission_manager,
+            max_steps=settings.tools.agent_max_steps,
+            confirmation_ttl=timedelta(
+                seconds=settings.tools.confirmation_ttl_seconds
+            ),
+        )
+    else:
+        application.state.tool_agent = None
 
     logger.info("Winston environment loaded successfully (%s)", settings.environment)
     logger.info(
