@@ -1,0 +1,10 @@
+projects:
+  winston:
+    name: Winston
+    path: ../..
+    description: Self-hosted personal AI operating system
+    launch:
+      vscode: true
+      terminal: true
+    startup_commands: []
+    metadata: {}

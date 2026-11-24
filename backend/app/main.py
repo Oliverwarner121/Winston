@@ -10,9 +10,11 @@ from app.api.health import router as health_router
 from app.api.root import router as root_router
 from app.core.config import settings
 from app.core.logging import configure_logging
+from app.services.code_proposals import CodeProposalManager
 from app.services.ollama_service import OllamaService
 from app.services.tool_agent import ToolAgent
 from app.services.winston_ai_service import WinstonAIService
+from app.tools.permissions import PermissionLevel
 from app.tools.runtime import create_default_tool_runtime
 
 
@@ -29,9 +31,22 @@ async def lifespan(application: FastAPI) -> AsyncIterator[None]:
         timeout_seconds=settings.ollama_timeout_seconds,
     )
     application.state.winston_ai_service = WinstonAIService(ollama_service)
-    tool_runtime = create_default_tool_runtime(settings.tools)
+    code_proposal_manager = (
+        CodeProposalManager(ollama_service)
+        if settings.features.tools_enabled
+        else None
+    )
+    tool_runtime = create_default_tool_runtime(
+        settings.tools,
+        code_proposal_manager=code_proposal_manager,
+    )
     application.state.tool_runtime = tool_runtime
+    application.state.code_proposal_manager = code_proposal_manager
     if settings.features.tools_enabled:
+        tool_runtime.permission_manager.grant(
+            "winston-local-user",
+            PermissionLevel.WRITE,
+        )
         application.state.tool_agent = ToolAgent(
             provider=ollama_service,
             registry=tool_runtime.registry,

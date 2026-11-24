@@ -6,6 +6,7 @@ const backendTarget = process.env.WINSTON_API_TARGET ?? 'http://127.0.0.1:8000'
 export default defineConfig({
   plugins: [react()],
   server: {
+    host: '127.0.0.1',
     proxy: {
       '/chat': {
         target: backendTarget,

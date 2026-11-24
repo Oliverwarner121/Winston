@@ -373,6 +373,98 @@
   color: #e6a58c;
 }
 
+.confirmation-actions {
+  display: flex;
+  gap: 9px;
+  margin-top: 13px;
+}
+
+.confirmation-button {
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid #44454e;
+  border-radius: 8px;
+  background: #26272d;
+  color: #dedee8;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.confirmation-button.approve {
+  border-color: #7773dc;
+  background: #625ec5;
+  color: #fff;
+}
+
+.confirmation-button:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
+.code-proposal {
+  margin-top: 16px;
+  padding: 14px;
+  border: 1px solid #383941;
+  border-radius: 10px;
+  background: #191a1e;
+}
+
+.code-proposal h3 {
+  margin: 0;
+  color: #e6e5f0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.proposal-files,
+.test-approval-warning,
+.tests-passed,
+.tests-failed {
+  margin: 8px 0 0 !important;
+  font-size: 13px !important;
+  line-height: 1.5 !important;
+}
+
+.proposal-files,
+.test-approval-warning {
+  color: #9c9da7 !important;
+}
+
+.proposal-diff {
+  margin-top: 12px;
+  color: #c9c9d1;
+  font-size: 13px;
+}
+
+.proposal-diff summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.proposal-diff pre,
+.test-output {
+  max-height: 420px;
+  overflow: auto;
+  margin: 10px 0 0;
+  padding: 12px;
+  border: 1px solid #303138;
+  border-radius: 7px;
+  background: #101114;
+  color: #d3d4dd;
+  font-family: 'Cascadia Code', 'Consolas', monospace;
+  font-size: 12px;
+  line-height: 1.55;
+  white-space: pre;
+}
+
+.tests-passed {
+  color: #86d4a2 !important;
+}
+
+.tests-failed {
+  color: #e6a58c !important;
+}
+
 .thinking {
   color: #858791 !important;
 }

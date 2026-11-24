@@ -36,7 +36,26 @@ Rather than being a chatbot, Winston is intended to become a personal operating 
 
 The React frontend lives in [`frontend/`](./frontend/README.md). Run the FastAPI backend and Vite frontend in separate terminals as described in the frontend guide.
 
-The chat endpoint connects to the configured local Ollama model. See [`backend/.env.example`](./backend/.env.example) for the model URL, model name, and timeout settings. Run `uvicorn app.main:app --reload` from `backend/`, then test the chat API with:
+The chat endpoint connects to the configured local Ollama model. See [`backend/.env.example`](./backend/.env.example) for the model URL, model name, and timeout settings. To enable local-only tool planning and confirmation, run the backend from `backend/` with:
+
+```bash
+FEATURES__TOOLS_ENABLED=true \
+TOOLS__PROJECT_ROOTS='["/home/you/Projects"]' \
+uvicorn app.main:app --host 127.0.0.1
+```
+
+The tool API rejects non-loopback clients and browser origins. Do not expose the backend or Vite dev server to your LAN. The frontend is started in another terminal:
+
+```bash
+cd frontend
+npm run dev
+```
+
+For code proposals, run the backend without `--reload`; pending review state is
+kept in memory, and Uvicorn reloads when source files change. Restart the backend
+manually after applying a code change.
+
+Then test the regular chat API with:
 
 ```bash
 curl -X POST http://localhost:8000/chat \
@@ -44,7 +63,7 @@ curl -X POST http://localhost:8000/chat \
   -d '{"message":"Hello Winston"}'
 ```
 
-The internal tool framework is documented in [`backend/docs/tool-framework.md`](./backend/docs/tool-framework.md). Tool execution is not exposed through an unauthenticated API.
+The tool framework, supervised coding workflow, and local-only access boundaries are documented in [`backend/docs/tool-framework.md`](./backend/docs/tool-framework.md).
 
 ## Security auditing
 

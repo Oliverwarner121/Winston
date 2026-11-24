@@ -8,10 +8,27 @@ type Message = {
   role: 'assistant' | 'user'
   content: string
   isError?: boolean
+  confirmationId?: string
+  proposalId?: string
+  proposalSummary?: string
+  proposalDiff?: string
+  proposalFiles?: string[]
+  proposalStatus?: string
+  testOutput?: string
+  testsPassed?: boolean
 }
 
 type ChatResponse = {
   response: string
+  confirmation_id?: string
+  confirmation_message?: string
+  proposal_id?: string
+  proposal_summary?: string
+  proposal_diff?: string
+  proposal_files?: string[]
+  proposal_status?: string
+  test_output?: string
+  tests_passed?: boolean
 }
 
 const welcomeMessage: Message = {
@@ -108,11 +125,7 @@ function App() {
         const result = (await response.json()) as ChatResponse
         setMessages((current) => [
           ...current,
-          {
-            id: nextId.current++,
-            role: 'assistant',
-            content: result.response,
-          },
+          assistantMessageFromResponse(result, nextId.current++),
         ])
       } catch {
         setMessages((current) => [
@@ -125,6 +138,120 @@ function App() {
           },
         ])
       }
+    } finally {
+      setIsSending(false)
+    }
+  }
+
+  async function handleConfirmation(confirmationId: string, approved: boolean) {
+    if (isSending) return
+    setIsSending(true)
+
+    try {
+      const response = await fetch(
+        `/chat/confirmations/${encodeURIComponent(confirmationId)}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ approved }),
+        },
+      )
+      if (!response.ok) {
+        let errorMessage = `Confirmation request failed (${response.status}).`
+        try {
+          const error = (await response.json()) as { detail?: string }
+          if (error.detail) errorMessage = error.detail
+        } catch {
+          // Keep the status-based message if the server response is not JSON.
+        }
+        throw new Error(errorMessage)
+      }
+
+      const result = (await response.json()) as ChatResponse
+      setMessages((current) => [
+        ...current.map((message) =>
+          message.confirmationId === confirmationId
+            ? { ...message, confirmationId: undefined }
+            : message,
+        ),
+        {
+          id: nextId.current++,
+          role: 'assistant',
+          content: result.confirmation_message ?? result.response,
+          confirmationId: result.confirmation_id,
+        },
+      ])
+    } catch (error) {
+      setMessages((current) => [
+        ...current,
+        {
+          id: nextId.current++,
+          role: 'assistant',
+          content:
+            error instanceof Error
+              ? error.message
+              : 'Unable to send the confirmation response.',
+          isError: true,
+        },
+      ])
+    } finally {
+      setIsSending(false)
+    }
+  }
+
+  async function handleCodeProposal(
+    proposalId: string,
+    action: 'apply' | 'discard' | 'tests',
+  ) {
+    if (isSending) return
+    setIsSending(true)
+
+    try {
+      const response = await fetch(`/chat/code-proposals/${proposalId}/${action}`, {
+        method: 'POST',
+      })
+      if (!response.ok) {
+        let errorMessage = `Code proposal request failed (${response.status}).`
+        try {
+          const error = (await response.json()) as { detail?: string }
+          if (error.detail) errorMessage = error.detail
+        } catch {
+          // Keep the status-based message if the server response is not JSON.
+        }
+        throw new Error(errorMessage)
+      }
+
+      const result = (await response.json()) as ChatResponse
+      setMessages((current) =>
+        current.map((message) =>
+          message.proposalId === proposalId
+            ? {
+                ...message,
+                content: result.response,
+                proposalId: result.proposal_id,
+                proposalSummary: result.proposal_summary,
+                proposalDiff: result.proposal_diff,
+                proposalFiles: result.proposal_files,
+                proposalStatus: result.proposal_status,
+                testOutput: result.test_output,
+                testsPassed: result.tests_passed,
+              }
+            : message,
+        ),
+      )
+    } catch (error) {
+      setMessages((current) => [
+        ...current,
+        {
+          id: nextId.current++,
+          role: 'assistant',
+          content:
+            error instanceof Error
+              ? error.message
+              : 'Unable to process the code proposal.',
+          isError: true,
+        },
+      ])
     } finally {
       setIsSending(false)
     }
@@ -207,10 +334,6 @@ function App() {
           <div className="messages" ref={messageListRef} aria-live="polite">
             <div className="conversation-intro">
               <p>YOUR PERSONAL ASSISTANT</p>
-              <h1>A little more focus.</h1>
-              <p className="intro-description">
-                Your private space to think, plan, and get things done.
-              </p>
             </div>
 
             <div className="message-list">
@@ -233,6 +356,113 @@ function App() {
                       {message.role === 'assistant' ? 'Winston' : 'You'}
                     </span>
                     <p>{message.content}</p>
+                    {message.confirmationId && (
+                      <div className="confirmation-actions">
+                        <button
+                          className="confirmation-button approve"
+                          disabled={isSending}
+                          onClick={() => {
+                            if (message.confirmationId) {
+                              void handleConfirmation(message.confirmationId, true)
+                            }
+                          }}
+                          type="button"
+                        >
+                          Approve
+                        </button>
+                        <button
+                          className="confirmation-button"
+                          disabled={isSending}
+                          onClick={() => {
+                            if (message.confirmationId) {
+                              void handleConfirmation(message.confirmationId, false)
+                            }
+                          }}
+                          type="button"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    )}
+                    {message.proposalId && (
+                      <div className="code-proposal">
+                        {message.proposalSummary && (
+                          <h3>{message.proposalSummary}</h3>
+                        )}
+                        {message.proposalFiles && (
+                          <p className="proposal-files">
+                            Files: {message.proposalFiles.join(', ')}
+                          </p>
+                        )}
+                        {message.proposalDiff && (
+                          <details className="proposal-diff" open>
+                            <summary>Review proposed diff</summary>
+                            <pre>{message.proposalDiff}</pre>
+                          </details>
+                        )}
+                        {message.proposalStatus === 'pending' && (
+                          <div className="confirmation-actions">
+                            <button
+                              className="confirmation-button approve"
+                              disabled={isSending}
+                              onClick={() => {
+                                if (message.proposalId) {
+                                  void handleCodeProposal(message.proposalId, 'apply')
+                                }
+                              }}
+                              type="button"
+                            >
+                              Apply patch
+                            </button>
+                            <button
+                              className="confirmation-button"
+                              disabled={isSending}
+                              onClick={() => {
+                                if (message.proposalId) {
+                                  void handleCodeProposal(message.proposalId, 'discard')
+                                }
+                              }}
+                              type="button"
+                            >
+                              Discard
+                            </button>
+                          </div>
+                        )}
+                        {message.proposalStatus === 'applied' && (
+                          <>
+                            <p className="test-approval-warning">
+                              Running tests executes repository code as your user.
+                            </p>
+                            <div className="confirmation-actions">
+                              <button
+                                className="confirmation-button approve"
+                                disabled={isSending}
+                                onClick={() => {
+                                  if (message.proposalId) {
+                                    void handleCodeProposal(message.proposalId, 'tests')
+                                  }
+                                }}
+                                type="button"
+                              >
+                                Run backend tests
+                              </button>
+                            </div>
+                          </>
+                        )}
+                        {message.proposalStatus === 'tested' && (
+                          <>
+                            <p className={message.testsPassed ? 'tests-passed' : 'tests-failed'}>
+                              {message.testsPassed
+                                ? 'Backend tests passed.'
+                                : 'Backend tests did not pass.'}
+                            </p>
+                            {message.testOutput && (
+                              <pre className="test-output">{message.testOutput}</pre>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    )}
                   </div>
                   {message.role === 'user' && (
                     <span className="user-avatar" aria-hidden="true">
@@ -332,6 +562,25 @@ function App() {
       </main>
     </div>
   )
+}
+
+function assistantMessageFromResponse(
+  response: ChatResponse,
+  id: number,
+): Message {
+  return {
+    id,
+    role: 'assistant',
+    content: response.confirmation_message ?? response.response,
+    confirmationId: response.confirmation_id,
+    proposalId: response.proposal_id,
+    proposalSummary: response.proposal_summary,
+    proposalDiff: response.proposal_diff,
+    proposalFiles: response.proposal_files,
+    proposalStatus: response.proposal_status,
+    testOutput: response.test_output,
+    testsPassed: response.tests_passed,
+  }
 }
 
 export default App

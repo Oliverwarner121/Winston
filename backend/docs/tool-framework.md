@@ -8,11 +8,11 @@ called directly by the model.
 
 | Category | Tools | Default boundary |
 |---|---|---|
-| `FILES` | `file_search`, `file_read`, `file_write`, `file_move` | Configured workspace roots only; dotfiles, Git metadata, credential paths, and common key files are excluded. Writes and moves require confirmation. |
-| `DEVELOPMENT` | `open_vscode`, `git`, `terminal` | VS Code and Git operate on workspace paths. Terminal uses argv (no shell), an executable allowlist, a timeout, output limits, and confirmation. |
+| `FILES` | `file_search`, `file_read`, `file_write`, `file_move` | Configured workspace roots only; dotfiles, Git metadata, credential paths, and common key files are excluded. Writes and moves require confirmation because they can modify source code. |
+| `DEVELOPMENT` | `code_proposal`, `project_launcher`, `open_vscode`, `git`, `terminal` | Code Proposal drafts a repository-scoped diff; applying it and running tests are separate user-approved actions. Project Launcher and VS Code open without an approval prompt. Every Git operation and terminal command requires confirmation. Terminal still uses argv (no shell), an executable allowlist, a timeout, and output limits. |
 | `SYSTEM` | `system_info`, `utc_clock` | Read-only machine metrics and UTC time. |
 | `BROWSER` | `web_search`, `browser_read` | Search is opt-in and sends queries to DuckDuckGo. Browser navigation is opt-in, HTTPS-only, host-allowlisted, JavaScript-disabled, and read-only. |
-| `DOCKER`, `HOMELAB` | `docker_status`, `docker_manage` | Only configured container names are visible/manageable. Start, stop, restart, and logs require confirmation. |
+| `DOCKER`, `HOMELAB` | `docker_status`, `docker_manage` | Only configured container names are visible/manageable. Docker actions do not prompt for confirmation and require the local `WRITE` permission. |
 | `PRODUCTIVITY` | Category reserved for plugins | Email, calendar, and task integrations are not implemented yet. |
 
 `ToolCategory` also defines the `PRODUCTIVITY` and `HOMELAB` extension points.
@@ -33,6 +33,12 @@ finance integrations) remain future plugins.
   duration, handles failures, and audits attempts and outcomes.
 - `app.tools.audit` emits structured JSON records through `winston.audit`.
 - `app.tools.runtime` composes the standard tools and their shared services.
+- `app.projects.registry` loads and validates the configured project list from
+  `backend/config/projects.yaml`; `project_launcher` opens the configured
+  applications through the central executor.
+- `app.services.code_proposals` provides a supervised code-change lifecycle:
+  gather bounded source context, draft a diff, wait for approval to apply it,
+  then separately wait for approval to run the backend test suite.
 - `app.services.tool_agent` provides bounded, one-tool-at-a-time planning. It
   filters tools by actor permission and delegates every call to the executor.
 
@@ -49,6 +55,40 @@ repository. Configure additional roots with a JSON array, for example:
 ```dotenv
 TOOLS__WORKSPACE_ROOTS=["/home/you/Projects","/home/you/Documents"]
 ```
+
+The project launcher reads `TOOLS__PROJECTS_CONFIG_PATH`, which defaults to
+`backend/config/projects.yaml`. Project paths may be absolute or relative to
+that YAML file; they are expanded and checked for existence when the registry
+loads. Additional project directories can be discovered one level below
+configured roots:
+
+```dotenv
+TOOLS__PROJECT_ROOTS=["/home/you/Projects"]
+```
+
+Non-hidden real directories are registered using their directory names and
+open in both VS Code and a terminal. Symlinked directories are skipped.
+Alternatively, add explicit entries by project ID without changing Python
+code:
+
+```yaml
+projects:
+  family-blog:
+    name: Family Blog
+    path: ~/Projects/Family-Blog
+    description: Weekly family update platform
+    launch:
+      vscode: true
+      terminal: true
+    startup_commands: []
+    metadata: {}
+```
+
+The configured actions require the existing `READ` permission and do not
+prompt for confirmation. The launcher starts VS Code and the first available supported
+desktop terminal (`gnome-terminal`, `x-terminal-emulator`, `konsole`, or
+`xfce4-terminal`) in the configured project directory. `startup_commands` and
+`metadata` are preserved as extension points; startup commands are not run.
 
 The following integrations are disabled or restricted until explicitly
 configured:
@@ -83,32 +123,46 @@ cd backend
 Docker commands use the configured local Docker CLI context named `default`
 and only the names in `TOOLS__DOCKER_ALLOWED_CONTAINERS`.
 
-## Agent, identity, and confirmation
+## Agent, local access, and confirmation
 
-`FEATURES__TOOLS_ENABLED` controls creation of the internal `ToolAgent`. No
-tool execution or confirmation HTTP endpoint is exposed. The existing chat
-route has no authenticated identity or confirmation UI, so it is intentionally
-not wired to the agent. Do not pass an actor ID supplied by the model or an
-unauthenticated request as trusted identity.
+`FEATURES__TOOLS_ENABLED` enables tool planning in `/chat` and grants the
+fixed local actor the `WRITE` level. Tool planning and confirmation requests
+are accepted only from loopback clients and loopback browser origins. Bind the
+backend and Vite frontend to `127.0.0.1`; do not expose either service through
+a LAN address or reverse proxy. This local-only mode is not user
+authentication: other processes running on the same machine can make requests
+and respond to confirmations.
 
-A future authenticated caller can use the runtime and agent in-process:
+The chat UI displays the exact action summary and requires an explicit
+Approve/Cancel choice only for code proposals, terminal commands, Git
+operations, and file writes/moves. Opening projects or VS Code, web research,
+and allowlisted Docker actions do not require approval prompts. Confirmation
+requests are short-lived, actor-bound,
+single-use, and permissions are rechecked before execution. Pending approvals
+are held in process memory and do not survive restarts or work across multiple
+workers.
 
-```python
-runtime = request.app.state.tool_runtime
-runtime.permission_manager.grant(authenticated_user_id, PermissionLevel.READ)
-response = await request.app.state.tool_agent.run(
-    user_message,
-    actor_id=authenticated_user_id,
-)
-```
+The fixed local actor is not supplied by the model or request body. For
+multi-user or remote access, replace this local-only mode with real
+authentication and per-user permission grants before exposing tool actions.
 
-Grant only the required level. Confirmation requests are short-lived,
-actor-bound, single-use, and recheck permissions before execution. Use
-`tool_agent.confirm(confirmation_id, actor_id=...)` or
-`tool_agent.cancel(...)` from a trusted caller. Pending approvals are in
-process memory and do not survive restarts or work across multiple workers.
-Before exposing this flow to a UI or network, add authentication and a
-confirmation screen that displays the exact tool-generated action summary.
+## Supervised coding
+
+When tools are enabled, Winston can draft changes only under approved source
+directories in its own repository (`backend/app`, `backend/tests`,
+`backend/docs`, `backend/config`, `frontend/src`, and the root README). It
+cannot edit dependency manifests, environment files, arbitrary files elsewhere
+on the PC, or delete files through this workflow. The proposed diff is shown
+before an explicit Apply action; the server checks that source files have not
+changed since drafting and applies only that diff. Applying does not commit or
+directly restart Winston (a development server using `--reload` can reload on
+source changes, so run without it during code proposals and restart manually).
+
+Running tests is a separate action after applying. The button runs only
+`python -m pytest -q` from the backend directory, with a timeout and bounded
+output. Tests execute as Winston's OS user and may have that user's filesystem
+and network access; review the patch and test files before approving. No
+package installation or arbitrary model-generated command is run.
 
 ## Adding a tool
 
@@ -121,8 +175,9 @@ registry.register(WeatherTool())
 
 Do not auto-import or load untrusted plugin packages. Tool implementations
 should validate paths and external identifiers themselves, declare the
-minimum required permission, and require confirmation for consequential
-changes.
+minimum required permission, and follow the approval boundary above: code
+changes, terminal commands, Git operations, and file writes/moves require
+confirmation; opening, searching, and allowlisted Docker actions do not.
 
 ## Tests
 

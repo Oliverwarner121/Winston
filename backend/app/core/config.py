@@ -8,7 +8,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class APISettings(BaseModel):
-    host: str = "0.0.0.0"
+    host: str = "127.0.0.1"
     port: int = 8000
     cors_origins: list[str] = Field(default_factory=list)
 
@@ -24,6 +24,12 @@ class FeatureSettings(BaseModel):
 
 
 class ToolSettings(BaseModel):
+    projects_config_path: Path = Field(
+        default_factory=lambda: Path(__file__).resolve().parents[2]
+        / "config"
+        / "projects.yaml"
+    )
+    project_roots: list[Path] = Field(default_factory=list, max_length=20)
     workspace_roots: list[Path] = Field(
         max_length=50,
         default_factory=lambda: [Path(__file__).resolve().parents[3]]

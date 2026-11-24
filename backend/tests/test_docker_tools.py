@@ -65,7 +65,7 @@ def test_docker_status_only_returns_allowlisted_containers(tmp_path, monkeypatch
     ]
 
 
-def test_docker_restart_requires_confirmation_and_container_allowlist(
+def test_docker_restart_does_not_prompt_and_checks_container_allowlist(
     tmp_path,
     monkeypatch,
 ) -> None:
@@ -73,7 +73,7 @@ def test_docker_restart_requires_confirmation_and_container_allowlist(
         workspace_roots=[tmp_path],
         docker_allowed_containers=["vaultwarden"],
     )
-    permissions = PermissionManager({"alice": [PermissionLevel.SYSTEM]})
+    permissions = PermissionManager({"alice": [PermissionLevel.WRITE]})
     executor = build_executor(DockerManagementTool(settings), permissions)
     monkeypatch.setattr(
         "app.tools.implementations.docker.shutil.which",
@@ -94,7 +94,7 @@ def test_docker_restart_requires_confirmation_and_container_allowlist(
         "app.tools.implementations.docker.run_process",
         fake_run_process,
     )
-    pending = asyncio.run(
+    restarted = asyncio.run(
         executor.request_execution(
             "docker_manage",
             {"operation": "restart", "container": "vaultwarden"},
@@ -102,15 +102,8 @@ def test_docker_restart_requires_confirmation_and_container_allowlist(
             user_request="Restart Vaultwarden",
         )
     )
-    assert pending.status == ToolExecutionStatus.CONFIRMATION_REQUIRED
-    assert calls == []
-    assert pending.confirmation_id is not None
-
-    restarted = asyncio.run(
-        executor.confirm_execution(pending.confirmation_id, actor_id="alice")
-    )
     assert restarted.success is True
-    assert restarted.confirmed is True
+    assert restarted.confirmed is False
     assert calls[0][-2:] == ["restart", "vaultwarden"]
 
     denied = asyncio.run(
@@ -121,10 +114,7 @@ def test_docker_restart_requires_confirmation_and_container_allowlist(
             user_request="Stop another container",
         )
     )
-    assert denied.status == ToolExecutionStatus.CONFIRMATION_REQUIRED
-    assert denied.confirmation_id is not None
-    failed = asyncio.run(
-        executor.confirm_execution(denied.confirmation_id, actor_id="alice")
-    )
+    failed = denied
     assert failed.status == ToolExecutionStatus.FAILED
+    assert failed.error == "Container is not in the configured allowlist."
     assert calls == [["/usr/bin/docker", "--context", "default", "restart", "vaultwarden"]]

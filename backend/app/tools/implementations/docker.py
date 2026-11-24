@@ -131,8 +131,7 @@ class DockerManagementTool(Tool[DockerManagementInput, DockerManagementOutput]):
     name = "Docker management"
     description = "Start, stop, restart, or view logs for an allowlisted container."
     category = ToolCategory.HOMELAB
-    permission_level = PermissionLevel.SYSTEM
-    requires_confirmation = True
+    permission_level = PermissionLevel.WRITE
     input_model = DockerManagementInput
     output_model = DockerManagementOutput
     audit_safe_input_fields: ClassVar[frozenset[str]] = frozenset(
